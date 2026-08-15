@@ -220,7 +220,6 @@ POST   /notifications/device-tokens
 | 5 | **`ProfileResponse.analysisSummary` null 키 소실** | **코드 (§6-1)** |
 | 6 | 결과 `overview.keywords`가 선택분인지 전체 후보인지 모호 → 예시대로 선택분만 | **FE 협의** |
 | 8 | ERD §6의 V1 전문에 `profiles.updated_at` 누락 | 문서 |
-| 9 | `.env.example` 한글 주석 깨짐 (mojibake) | 파일 |
 | 10 | 사진 없는 프로필로 분석 시도할 전용 에러 코드 없음 → `PROFILE_REQUIRED` 대체 | 문서 |
 | 12 | 목표 생성 **201 동기 vs 202 비동기** 문서 충돌 → API.md 따라 201 | 문서 |
 | 13 | `GET /routines` 응답 미정의 → `RoutineSummary` 재사용 | 문서 |
@@ -232,7 +231,7 @@ POST   /notifications/device-tokens
 | 19 | 알림 응답만 공통 봉투 없이 예시됨 → §1 봉투 적용 | 문서 |
 | 20 | **인바디 서류 사진 스토리지 잔존** | **운영 (§6-2)** |
 
-**해소된 것** — #7(`comparison_image_key` 1개 vs URL 2장), #11(구독 만료 에러 코드), G-2 문구.
+**해소된 것** — #7(`comparison_image_key` 1개 vs URL 2장), #9(`.env.example` UTF-8 복구), #11(구독 만료 에러 코드), G-2 문구.
 
 **PRD 미결도 그대로** — **O-1**(수치 대시보드 ↔ G-1 충돌, 최우선) · **O-2**(동의 화면·생년월일, 법적) · O-4 · O-5.
 
