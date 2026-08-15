@@ -27,6 +27,10 @@ ext {
     jjwtVersion = '0.12.6'
     awsSdkVersion = '2.29.9'
     googleApiClientVersion = '2.7.0'
+
+    // Spring Boot 3.3.5의 기본값(1.19.8)은 Docker Engine 29의 최소 API와 호환되지 않는다.
+    // Spring Boot 연동 API를 유지하기 위해 Testcontainers 1.x의 Docker 29 대응 릴리스를 사용한다.
+    set('testcontainers.version', '1.21.4')
 }
 
 dependencies {
