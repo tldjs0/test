@@ -1,0 +1,26 @@
+# 로컬 개발용 PostgreSQL
+#   docker compose up -d
+#   docker compose down          (데이터 유지)
+#   docker compose down -v       (데이터까지 삭제)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gojeom-postgres
+    environment:
+      POSTGRES_DB: gojeom
+      POSTGRES_USER: gojeom
+      POSTGRES_PASSWORD: gojeom
+      TZ: UTC
+    ports:
+      - "5432:5432"
+    volumes:
+      - gojeom-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gojeom -d gojeom"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  gojeom-pgdata:
