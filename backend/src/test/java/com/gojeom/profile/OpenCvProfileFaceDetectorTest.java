@@ -13,9 +13,9 @@ import javax.imageio.ImageIO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-class OpenImajProfileFaceDetectorTest {
+class OpenCvProfileFaceDetectorTest {
 
-    private final OpenImajProfileFaceDetector detector = new OpenImajProfileFaceDetector();
+    private final OpenCvProfileFaceDetector detector = new OpenCvProfileFaceDetector();
 
     @Test
     @DisplayName("디코딩할 수 없는 파일은 얼굴 없음으로 오인하지 않고 형식 오류로 처리한다")
