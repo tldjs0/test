@@ -168,13 +168,15 @@ POST   /notifications/device-tokens
 | `NotificationScheduler` (발송) | FCM vs Web Push 미정. 설정·토큰은 이미 쌓임 |
 | `GET /consents/terms` | 동의 화면 미설계 (PRD O-2) |
 
-### 알려진 구멍 3가지
+### 알려진 구멍 1가지
 
 | # | 내용 | 규모 |
 | --- | --- | --- |
-| 1 | **`ProfileResponse.analysisSummary`가 null일 때 키째로 사라짐.** 다른 응답은 고쳤는데 프로필만 남음 | 한 줄 |
-| 2 | **인바디 서류 사진이 S3에 영구 잔존.** key를 DB에 안 남기는 설계라 지울 대상을 알 수 없다 | 버킷 수명 주기 정책 |
 | 3 | **`PATCH /profiles/me` 후 `analysis_summary` 미갱신.** 신체 정보를 고쳐도 AI 요약은 그대로 | 정책 결정 필요 |
+
+**2026-08-16 해소** — `ProfileResponse.analysisSummary`는 null 키를 유지한다.
+인바디 OCR 원본은 소유권 검증 후 성공·실패와 무관하게 영속 삭제 큐에 기록하고,
+S3 삭제 실패 시 스케줄러가 재시도한다.
 
 ### 검증 못 한 것
 
@@ -182,8 +184,10 @@ POST   /notifications/device-tokens
 | --- | --- |
 | **Google 로그인 성공 경로** | `GOOGLE_CLIENT_ID`가 자리표시자. 실패 경로만 확인 |
 | **실제 인물 사진의 이미지 합성** | 검증은 전부 합성 이미지로 했다. 실사진은 제공자가 거부할 수 있다(→ `FAILED`로 정상 처리) |
-| **Testcontainers 통합 테스트** | Docker 없음 |
 | **실기기 동작** | 웹 번들만 확인 |
+
+**2026-08-16 추가 검증** — Docker Desktop 29.7.2에서 Testcontainers 1.21.4로
+`clean integrationTest`를 실행해 `BUILD SUCCESSFUL`을 확인했다.
 
 ---
 

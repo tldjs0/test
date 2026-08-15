@@ -10,8 +10,10 @@ import com.gojeom.profile.dto.InbodyScanDtos.InbodyScanRequest;
 import com.gojeom.profile.dto.InbodyScanDtos.InbodyScanResponse;
 import com.gojeom.profile.dto.InbodyScanDtos.ScanConfidence;
 import com.gojeom.profile.entity.Inbody;
+import com.gojeom.storage.ObjectKeyFactory;
 import com.gojeom.storage.StorageService;
 import com.gojeom.storage.UploadPurpose;
+import com.gojeom.storage.deletion.StorageDeletionService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,33 +40,46 @@ public class InbodyScanService {
     private final OpenAiClient openAiClient;
     private final InbodyOcrPrompt prompt;
     private final StorageService storageService;
+    private final ObjectKeyFactory objectKeyFactory;
+    private final StorageDeletionService storageDeletionService;
 
     public InbodyScanResponse scan(UUID userId, InbodyScanRequest request) {
-        // 클라이언트가 남의 경로 key를 보낼 수 있다. (ARCHITECTURE.md §8)
-        storageService.validateUploadedImage(
-                request.documentKey(), UploadPurpose.INBODY_DOCUMENT, userId);
+        String documentKey = request.documentKey();
 
-        String documentUrl = storageService.presignDownload(request.documentKey());
+        // 삭제 큐에 넣기 전에 소유권부터 확인한다. 그렇지 않으면 공격자가 남의 key를
+        // 보내 그 객체를 삭제하게 만들 수 있다. (ARCHITECTURE.md §8)
+        objectKeyFactory.assertOwned(documentKey, UploadPurpose.INBODY_DOCUMENT, userId);
 
-        InbodyOcrPayload payload;
         try {
-            payload = openAiClient.complete(prompt.build(documentUrl));
-        } catch (AiException e) {
-            // key·URL을 로그에 남기지 않는다. (AGENTS.md 규칙 9)
-            log.info("인바디 스캔 실패 code={}", e.errorCode().name());
-            // 사용자에게는 "직접 입력해주세요"가 맞다. 분석권은 차감하지 않는다.
-            throw new BusinessException(ErrorCode.INBODY_SCAN_FAILED);
-        }
+            storageService.validateUploadedImage(
+                    documentKey, UploadPurpose.INBODY_DOCUMENT, userId);
 
-        if (payload.recognizedCount() == 0) {
-            // 인바디 결과지가 아니거나 전혀 읽히지 않았다. (PRD §8.3)
-            throw new BusinessException(ErrorCode.INBODY_SCAN_FAILED);
-        }
+            String documentUrl = storageService.presignDownload(documentKey);
 
-        return new InbodyScanResponse(
-                new Inbody(payload.bodyWaterL(), payload.proteinKg(), payload.mineralKg(),
-                        payload.bodyFatKg(), payload.skeletalMuscleKg(), payload.bmi()),
-                ScanConfidence.of(payload.recognizedCount()),
-                payload.unrecognized());
+            InbodyOcrPayload payload;
+            try {
+                payload = openAiClient.complete(prompt.build(documentUrl));
+            } catch (AiException e) {
+                // key·URL을 로그에 남기지 않는다. (AGENTS.md 규칙 9)
+                log.info("인바디 스캔 실패 code={}", e.errorCode().name());
+                // 사용자에게는 "직접 입력해주세요"가 맞다. 분석권은 차감하지 않는다.
+                throw new BusinessException(ErrorCode.INBODY_SCAN_FAILED);
+            }
+
+            if (payload.recognizedCount() == 0) {
+                // 인바디 결과지가 아니거나 전혀 읽히지 않았다. (PRD §8.3)
+                throw new BusinessException(ErrorCode.INBODY_SCAN_FAILED);
+            }
+
+            return new InbodyScanResponse(
+                    new Inbody(payload.bodyWaterL(), payload.proteinKg(), payload.mineralKg(),
+                            payload.bodyFatKg(), payload.skeletalMuscleKg(), payload.bmi()),
+                    ScanConfidence.of(payload.recognizedCount()),
+                    payload.unrecognized());
+        } finally {
+            // OCR 원본은 응답 성공 여부와 관계없이 더 이상 필요하지 않다.
+            // DB에 key를 남기지 않는 기능이므로 영구 잔존하지 않게 삭제 큐에 기록한다.
+            storageDeletionService.enqueue(documentKey);
+        }
     }
 }
